@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "hesitation-av"
+version = "0.1.0"
+description = "Interpretable temporal decision framework for ambiguity-aware autonomous hesitation"
+authors = ["Arunkumar Ramachandran"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.group.dev.dependencies]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,87 @@
+# ============================================================
+#  Hesitation-AV  -  Parameter Configuration
+#  Every threshold, weight, and temporal guard lives here.
+#  Change behavior by editing this file, not the code.
+# ============================================================
+
+ambiguity:
+  alpha: 0.45                  # perceptual weight in A(t) = α·Ap + β·Ab
+  beta:  0.55                  # behavioral weight (α + β = 1)
+  window_frames: 30            # sliding window N (1 sec @ 30fps)
+
+perceptual:
+  lambda_aleatoric: 0.5        # weight between aleatoric vs epistemic in DetConf
+  min_detection_confidence: 0.25
+
+behavioral:
+  kalman_process_noise: 0.1    # Q - higher = trusts measurements more
+  kalman_measurement_noise: 1.0 # R - higher = trusts model more
+  min_track_frames: 15         # minimum frames before entropy is computed
+  velocity_bins_speed: 5       # discretization bins for speed
+  velocity_bins_heading: 8     # discretization bins for heading
+
+risk:
+  gamma: 0.35                  # TTC_risk weight
+  eta:   0.45                  # TrajectoryConflict weight
+  xi:    0.20                  # CorrectionSeverity weight
+  tau_ref: 3.0                 # TTC reference horizon (seconds)
+  ttc_velocity_floor: 0.1      # ε - prevents TTC explosion at low v_rel
+  trajectory_samples: 50       # K - monte carlo samples for conflict
+  trajectory_horizon: 2.0      # H - seconds to project trajectories
+  correction_window: 1.5       # δ - seconds post-commit to watch for correction
+  jerk_threshold: 3.0          # m/s³ - correction detection
+  path_deviation_threshold: 0.3 # meters
+
+state_machine:
+  # Ambiguity thresholds
+  tau_low:  0.35               # lower ambiguity boundary
+  tau_high: 0.65               # upper ambiguity boundary
+  tau_spike: 0.75              # spike bypass threshold (skips t_entry)
+  hysteresis: 0.10             # h - exit requires τ·(1-h)
+
+  # Oscillation thresholds
+  sigma_osc:    0.12           # oscillation level that triggers PROBE→HOLD
+  sigma_stable: 0.05           # oscillation level considered "damped"
+
+  # Risk thresholds
+  rho_commit:   0.55           # max risk allowed for G3 (commit)
+  rho_warn:     0.55           # early-warning abort trigger (in COMMIT)
+  rho_critical: 0.80           # emergency override threshold
+  rho_safe:     0.30           # safe threshold for recovery
+  delta_risk_rise: 0.08        # dRisk/dt threshold for anticipatory abort
+  delta_spike: 0.20            # dA/dt threshold for spike bypass
+
+  # Temporal guards (seconds)
+  t_entry:        0.50         # G1 confirmation window
+  t_escalate:     0.40         # G2 persistence before HOLD
+  t_commit_min:   0.50         # G3 sustained period before COMMIT
+  t_probe_max:    3.00         # max time in PROBE before forced HOLD
+  t_timeout:      6.00         # max time in HOLD before ABORT
+  t_recovery:     0.50         # G5 recovery confirmation
+  t_reset_min:    0.30         # G8 minimum reset duration
+  t_cooldown:     2.00         # re-entry cooldown after PROBE exit
+  t_yield:        4.00         # YIELD duration before retry
+
+  # Memory
+  n_abort_max:    3            # consecutive ABORTs before YIELD
+  rho_unresolvable: 0.80       # fraction of window at τ_high → flag unresolvable
+
+hqm:
+  # Component weights (must sum to 1.0)
+  alpha_s: 0.40                # safety gain weight
+  beta_e:  0.25                # efficiency weight
+  gamma_b: 0.20                # stability weight
+  delta_r: 0.15                # resolution quality weight
+
+  t_budget: 5.0                # max acceptable hesitation (for E normalization)
+  lambda_transitions: 0.5      # B1 decay rate per extra state transition
+  w1_stability: 0.6            # B1 weight (transition count)
+  w2_stability: 0.4            # B2 weight (oscillation)
+
+pipeline:
+  camera_index: 0              # 0 = default webcam, or MJPEG URL string
+  fps_target: 30
+  websocket_host: "localhost"
+  websocket_port: 8765
+  frame_width: 640
+  frame_height: 480
