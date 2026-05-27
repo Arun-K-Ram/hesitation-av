@@ -73,8 +73,8 @@ hqm:
   gamma_b: 0.20                # stability weight
   delta_r: 0.15                # resolution quality weight
 
-  t_budget: 5.0                # max acceptable hesitation (for E normalization)
-  lambda_transitions: 0.5      # B1 decay rate per extra state transition
+  t_budget: 8.0                # max acceptable hesitation (for E normalization)
+  lambda_transitions: 0.3      # B1 decay rate per extra state transition
   w1_stability: 0.6            # B1 weight (transition count)
   w2_stability: 0.4            # B2 weight (oscillation)
 

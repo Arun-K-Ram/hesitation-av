@@ -1,0 +1,7 @@
+scenario,policy,hqm_mean,hqm_std,hqm_median,S_mean,E_mean,B_mean,R_mean,ucr,dl_mean_ms,n_trials
+merge_hesitation,greedy,0.6,0.0,0.6,0.0,1.0,1.0,1.0,0.0,0.0,30
+merge_hesitation,hesitation,0.6058,0.0129,0.6046,0.1877,1.0,0.6535,1.0,0.0,247.7767,30
+occluded_intersection,greedy,0.6,0.0,0.6,0.0,1.0,1.0,1.0,0.0,0.0,30
+occluded_intersection,hesitation,0.6551,0.0169,0.6576,0.3392,1.0,0.5969,1.0,0.0,718.8867,30
+pedestrian_curb,greedy,0.6,0.0,0.6,0.0,1.0,1.0,1.0,0.0,0.0,30
+pedestrian_curb,hesitation,0.7451,0.0061,0.7452,0.5116,1.0,0.702,1.0,0.0,1908.88,30

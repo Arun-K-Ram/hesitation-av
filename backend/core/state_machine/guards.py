@@ -25,7 +25,7 @@ def _p() -> dict:
     return load_config()["state_machine"]
 
 
-# ── G1: CRUISE → PROBE ──────────────────────────────────────────────────────
+# G1: CRUISE → PROBE 
 
 def G1(A: float, t_in_state: float, t_since_last_probe_exit: float) -> bool:
     """Normal ambiguity entry (confirmation window + cooldown)."""
@@ -44,7 +44,7 @@ def G1_spike(A: float, dA_dt: float) -> bool:
     return A > p["tau_spike"] and dA_dt > p["delta_spike"]
 
 
-# ── G2: PROBE → HOLD ────────────────────────────────────────────────────────
+# G2: PROBE → HOLD ──
 
 def G2(A: float, dA_dt: float, osc: float, t_in_state: float) -> bool:
     p = _p()
@@ -58,7 +58,7 @@ def G2(A: float, dA_dt: float, osc: float, t_in_state: float) -> bool:
     return high_and_stable or rising_oscillating or probe_timeout
 
 
-# ── G3: PROBE → COMMIT ───────────────────────────────────────────────────────
+# G3: PROBE → COMMIT ─
 
 def G3(A: float, dA_dt: float, osc: float, risk: float, t_in_state: float) -> bool:
     """
@@ -76,7 +76,7 @@ def G3(A: float, dA_dt: float, osc: float, risk: float, t_in_state: float) -> bo
     )
 
 
-# ── G4: COMMIT → ABORT ───────────────────────────────────────────────────────
+# G4: COMMIT → ABORT ─
 
 def G4(risk: float, dA_dt: float) -> bool:
     """Post-commit risk spike or sudden ambiguity jump."""
@@ -97,7 +97,7 @@ def G4_early(risk: float, dR_dt: float, risk_projected: float) -> bool:
     )
 
 
-# ── G5: HOLD → PROBE ─────────────────────────────────────────────────────────
+# G5: HOLD → PROBE ───
 
 def G5(A: float, dA_dt: float, t_in_state: float) -> bool:
     p = _p()
@@ -109,14 +109,14 @@ def G5(A: float, dA_dt: float, t_in_state: float) -> bool:
     )
 
 
-# ── G6: HOLD → ABORT ─────────────────────────────────────────────────────────
+# G6: HOLD → ABORT ───
 
 def G6(t_in_state: float, risk: float) -> bool:
     p = _p()
     return t_in_state >= p["t_timeout"] or risk > p["rho_critical"]
 
 
-# ── G7: ABORT → CRUISE ───────────────────────────────────────────────────────
+# G7: ABORT → CRUISE ─
 
 def G7(A: float, risk: float, dA_dt: float, t_in_state: float) -> bool:
     p = _p()
@@ -128,14 +128,14 @@ def G7(A: float, risk: float, dA_dt: float, t_in_state: float) -> bool:
     )
 
 
-# ── G8: Emergency override (any → ABORT) ─────────────────────────────────────
+# G8: Emergency override (any → ABORT) ─────────────────────────────────────
 
 def G8_emergency(risk: float) -> bool:
     p = _p()
     return risk > p["rho_critical"]
 
 
-# ── Yield re-entry check ──────────────────────────────────────────────────────
+# Yield re-entry check 
 
 def G_yield_exit(A: float, risk: float, t_in_state: float) -> bool:
     """Exit YIELD after mandatory pause and scene clearance."""
