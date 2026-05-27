@@ -82,7 +82,7 @@ npm run dev
 
 **Total: ~$57–77**
 
-### Optional (better demo)
+### Optional
 | Item | Purpose | ~Cost |
 |------|---------|-------|
 | Raspberry Pi Zero 2W | Onboard compute for car | $15 |
@@ -96,7 +96,7 @@ npm run dev
 The RC car does **not** need to drive itself.
 
 ```
-Setup A - Fixed overhead camera (recommended for LinkedIn video):
+Setup A - Fixed overhead camera:
   1. Mount webcam above a small tabletop course
   2. Drive RC car manually through scenarios
   3. Pipeline watches the overhead feed
