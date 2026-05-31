@@ -20,4 +20,6 @@ dashboard/dist/
 .idea/
 
 # OS
-.DS_Store
+.DS_Storebackend/data/train_data_x.npy 
+backend/data/train_data_y.npy 
+backend/data/test_data_x.npy 
