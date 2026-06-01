@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import cv2
 import numpy as np
+from ml.scene_predictor import SceneAmbiguityPredictor
 import asyncio
 import websockets
 import json
@@ -73,6 +74,9 @@ async def broadcast(message: str):
 
 class LivePipeline:
     def __init__(self):
+        self._scene_predictor = SceneAmbiguityPredictor()
+        self._current_alpha   = 0.45
+        self._current_beta    = 0.55
         self._detector   = Detector()
         self._fusion     = AmbiguityFusion()
         self._risk       = RiskComposite()
@@ -100,6 +104,15 @@ class LivePipeline:
                 cx, cy = d.center
                 return abs(cx - centre_x) + abs(cy - bottom_y)
             primary = min(detections, key=proximity)
+
+        # Scene classification + adaptive weights
+        scene_pred = self._scene_predictor.predict(frame)
+        self._current_alpha = scene_pred["alpha"]
+        self._current_beta  = scene_pred["beta"]
+
+        # Update fusion weights dynamically
+        self._fusion._alpha = self._current_alpha
+        self._fusion._beta  = self._current_beta
 
         #  Tracking 
         tracker = None
@@ -171,6 +184,12 @@ class LivePipeline:
         self._frame_count += 1
 
         #  Frame overlays 
+        cv2.putText(frame, f"Scene: {scene_pred['scene_name']}",
+            (20, 170), cv2.FONT_HERSHEY_SIMPLEX,
+            0.6, (200, 200, 200), 1)
+        cv2.putText(frame, f"a={scene_pred['alpha']:.2f} b={scene_pred['beta']:.2f}",
+                    (20, 200), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6, (200, 200, 200), 1)
         for det in detections:
             x1, y1, x2, y2 = det.bbox.astype(int)
             color = (0, 255, 0) if det == primary else (128, 128, 128)
@@ -212,6 +231,14 @@ class LivePipeline:
                 "traj_conf":  round(tc, 4),
                 "correction": round(cs, 4),
                 "dR_dt":      round(risk_d["dR_dt"], 4),
+            },
+            "scene": {
+                "type":       scene_pred["scene_type"],
+                "name":       scene_pred["scene_name"],
+                "confidence": round(scene_pred["scene_confidence"], 4),
+                "alpha":      scene_pred["alpha"],
+                "beta":       scene_pred["beta"],
+                "source":     scene_pred["weight_source"],
             },
             "hqm": {
                 "macro":           round(self._hqm.macro_hqm or 0.0, 4),
