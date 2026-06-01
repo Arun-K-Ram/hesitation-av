@@ -1,0 +1,23 @@
+ASYMMETRY TEST: Premature vs Delayed Commitment
+=======================================================
+
+  Offset pair: -0.5s vs +0.5s
+    Early mean HQM:  0.5094
+    Late mean HQM:   0.4864
+    Difference:      -0.0230
+    Wilcoxon p:      0.0000 (significant)
+    Finding:         DELAYED COSTS MORE
+
+  Offset pair: -1.0s vs +1.0s
+    Early mean HQM:  0.4278
+    Late mean HQM:   0.4700
+    Difference:      +0.0423
+    Wilcoxon p:      0.0000 (significant)
+    Finding:         PREMATURE COSTS MORE
+
+  Offset pair: -1.5s vs +1.5s
+    Early mean HQM:  0.3923
+    Late mean HQM:   0.4582
+    Difference:      +0.0659
+    Wilcoxon p:      0.0000 (significant)
+    Finding:         PREMATURE COSTS MORE
