@@ -1,16 +1,47 @@
 # Hesitation-AV
 
-**Ambiguity-Driven Hesitation in Autonomous Driving Systems**
+**Hesitate or Commit: A Formal Framework for Ambiguity-Aware Decision-Making in Autonomous Driving**
 
 A formal temporal decision framework for interpretable autonomous hesitation.
+
+> *Hesitation is not a failure mode - it is a measurable, optimizable decision primitive.*
+
+---
+
+## Overview
+
+Autonomous driving systems fail systematically in ambiguous scenarios where agent intent is unclear. This framework introduces:
+
+- **Decomposed ambiguity** `A(t) = α·Aₚ(t) + β·Ab(t)` grounded in aleatoric/epistemic uncertainty theory
+- **Six-state hesitation state machine** with eight formally defined transition guards (G1–G8)
+- **Hesitation Quality Metric (HQM)** decomposing decision quality into Safety gain, Efficiency, Behavioral stability, and Resolution quality
+- **Context-adaptive MLP** replacing fixed α,β weights with data-driven predictions (R²=0.814)
+- **Two-phase validation**: RC car physical testbed + CARLA simulation (240 trials, zero collisions)
+
+---
+
+## Key Results
+
+| Metric | Value |
+|--------|-------|
+| Hesitation HQM (pedestrian\_curb) | **0.747** vs greedy baseline 0.600 |
+| Only policy beating greedy | All 3 scenario classes |
+| Large-scale robustness (1,000 configs) | **100% beat greedy** |
+| Counterfactual asymmetry at ±1.5s | **ΔHQM = +0.066** (p<0.001) |
+| CARLA validation (240 trials) | **Zero collisions** |
+| Scene classification - same-session | **99.6%** (EfficientNetB2) |
+| Scene classification - cross-session | **87.5%** (EfficientNetB2) |
 
 ---
 
 ## Architecture
 
 ```
-Video Feed → Perception → Ambiguity Layer → State Machine → HQM Evaluation
-                          A(t) = α·Aₚ + β·Ab    G1–G8 guards    S·E·B·R
+Video Feed → YOLOv11n Detection → Ambiguity Layer → State Machine → HQM Evaluation
+                                  A(t) = α·Aₚ + β·Ab   G1–G8 guards   S·E·B·R
+                                         ↑
+                                    MLP adaptive weights
+                                    (scene-conditioned)
 ```
 
 ---
@@ -19,134 +50,209 @@ Video Feed → Perception → Ambiguity Layer → State Machine → HQM Evaluati
 
 ```
 hesitation-av/
-├── config/
-│   └── params.yaml          ← every parameter lives here
-├── core/
-│   ├── ambiguity/
-│   │   ├── perceptual.py    ← DetConf(t) - aleatoric/epistemic
-│   │   ├── behavioral.py    ← MotionEntropy(t) - Kalman-denoised
-│   │   └── fusion.py        ← A(t) composite + dA/dt + oscillation
-│   ├── risk/
-│   │   └── composite.py     ← TTC_risk + TrajectoryConflict + CorrectionSeverity
-│   ├── state_machine/
-│   │   ├── states.py        ← State enum
-│   │   ├── guards.py        ← G1–G8 transition conditions
-│   │   ├── machine.py       ← HesitationStateMachine
-│   │   └── memory.py        ← cooldown / abort counter / resolution horizon
-│   ├── metrics/
-│   │   └── hqm.py           ← HQM: S, E, B, R components
-│   └── perception/
-│       ├── detector.py      ← YOLOv8 wrapper
-│       └── tracker.py       ← Kalman filter tracker
-├── pipeline/
-│   └── websocket_server.py  ← streams telemetry to React at 30fps
-├── dashboard/
-│   └── src/App.jsx          ← React live dashboard
-└── tests/
-    └── test_state_machine.py ← 5 pathological case tests
+├── backend/
+│   ├── config/
+│   │   └── params.yaml                  ← all parameters live here
+│   ├── core/
+│   │   ├── ambiguity/
+│   │   │   ├── perceptual.py            ← Aₚ(t): aleatoric + epistemic
+│   │   │   ├── behavioral.py            ← Ab(t): Kalman-smoothed entropy
+│   │   │   └── fusion.py                ← A(t) composite, dA/dt, oscillation
+│   │   ├── risk/
+│   │   │   └── composite.py             ← TTC_risk + TrajectoryConflict + CorrectionSeverity
+│   │   ├── state_machine/
+│   │   │   ├── states.py                ← State enum (CRUISE/PROBE/HOLD/COMMIT/ABORT/YIELD)
+│   │   │   ├── guards.py                ← G1–G8 transition conditions
+│   │   │   ├── machine.py               ← HesitationStateMachine
+│   │   │   └── memory.py                ← cooldown / abort counter / resolution horizon
+│   │   ├── metrics/
+│   │   │   └── hqm.py                   ← HQM: S, E, B, R components
+│   │   └── perception/
+│   │       ├── detector.py              ← YOLOv11n wrapper
+│   │       └── tracker.py               ← Kalman filter tracker
+│   ├── ml/
+│   │   ├── train_mlp.py                 ← MLP ambiguity predictor (R²=0.814)
+│   │   ├── train_cnn_v2.py              ← CNN architecture sweep (36 configs)
+│   │   ├── train_cnn_crosssession.py    ← Cross-session CNN validation
+│   │   ├── scene_predictor.py           ← EfficientNetB2 scene classifier
+│   │   └── cnn_best_v2.pth              ← Best CNN weights (same-session)
+│   └── pipeline/
+│       └── live.py                      ← Live webcam pipeline + recording
+├── experiments/
+│   ├── run_ablation.py                  ← 6-policy comparison (540 trials)
+│   ├── counterfactual.py                ← Commitment timing analysis
+│   ├── sensitivity_analysis.py          ← ±20% perturbation + 1000-config sweep
+│   ├── carla_validation.py              ← CARLA Phase 2 (240 trials)
+│   ├── generate_visual_summary.py       ← Policy comparison figure
+│   ├── generate_cnn_sweep_plot.py       ← CNN sweep figure
+│   └── results/                         ← All experiment outputs
+├── paper_figures/                       ← Publication-ready figures (white theme)
+│   ├── hesitav_samples.png
+│   ├── cnn_sweep_plot.png
+│   ├── ablation.png
+│   ├── counterfactual.png
+│   ├── sensitivity.png
+│   ├── carla_validation.png
+│   ├── carla_scenarios.png
+│   ├── visual_summary.png
+│   └── camera_calibration.png
+├── recordings/                          ← HesitAV-1564 dataset
+│   ├── pedestrian_curb_*/               ← Sessions 1–3
+│   ├── merge_hesitation_*/
+│   └── occluded_intersection_*/
+└── dashboard/
+    └── src/App.jsx                      ← React live dashboard
 ```
+
+---
+
+## HesitAV-1564 Dataset
+
+Custom RC car dataset recorded across three sessions and three scenario classes.
+
+| Session | Conditions | Role |
+|---------|-----------|------|
+| Session 1 | Room lighting | Train |
+| Session 2 | No lights / evening | Train |
+| Session 3 | Lamp on (different illumination) | **Test (held out)** |
+
+| Scenario | Frames | Description |
+|----------|--------|-------------|
+| pedestrian\_curb | 2,033 | Agent near ego path with ambiguous crossing intent |
+| merge\_hesitation | 1,275 | Vehicle at uncertain merge point |
+| occluded\_intersection | 255 | Agent partially occluded |
+
+**Total: 3,563 frames** across 3 sessions, 3 scenario classes.
+
+---
+
+## CNN Architecture Sweep
+
+Six architectures evaluated across 36 hyperparameter configurations.
+
+| Architecture | Params | Val (%) | Cross-session (%) |
+|-------------|--------|---------|-------------------|
+| EfficientNetB2 | 9.1M | **99.8** | **87.5** |
+| EfficientNetB0 | 5.3M | 99.6 | 75.2 |
+| MobileNetV3 | 5.4M | 99.6 | 70.9 |
+| MobileNetV2 | 3.4M | 99.4 | 71.1 |
+| ResNet18 | 11M | 99.6 | 67.7 |
+| ConvNeXt-Tiny | 28M | 99.6 | 52.6 |
+
+EfficientNetB2 selected: best on both same-session and cross-session.
 
 ---
 
 ## Quick Start
 
 ```bash
-# 1. Install Python deps
-pip install -r requirements.txt
-
-# 2. Run the pipeline (demo mode with synthetic data)
+# 1. Clone and install
+git clone https://github.com/Arun-K-Ram/hesitation-av
 cd hesitation-av
-python pipeline/websocket_server.py
+poetry install
 
-# 3. In another terminal, run the dashboard
-cd dashboard
-npm install
-npm run dev
-# Open http://localhost:5173
+# 2. Run live pipeline (webcam)
+poetry run python backend/pipeline/live.py --source 0
+
+# 3. Record a scenario
+poetry run python backend/pipeline/live.py --source 0 --record --label pedestrian_curb
+
+# 4. Run experiments
+python experiments/run_ablation.py
+python experiments/counterfactual.py
+python experiments/sensitivity_analysis.py
+
+# 5. Run CARLA validation (requires CARLA 0.9.15)
+C:\carla\WindowsNoEditor\CarlaUE4.exe -quality-level=Low
+python experiments/carla_validation.py
 ```
 
 ---
 
-## Hardware Shopping List - Live Demo
+## Hesitation State Machine
 
-**Total estimated cost: $60–85**
+Six states, eight guards. Core principle: no transition depends on A(t) alone - every transition depends on its temporal trajectory.
 
-### Required
+```
+CRUISE → PROBE → COMMIT
+           ↓        ↓
+          HOLD    ABORT
+           ↓        ↓
+          PROBE   CRUISE
+           ↓
+          YIELD
+```
 
-| Item | Purpose | Where | ~Cost |
-|------|---------|-------|-------|
-| RC car (WLtoys A959 or similar) | The demo vehicle | Amazon | $30–40 |
-| USB webcam (Logitech C270 or similar) | Overhead scene camera | Amazon | $20–25 |
-| Small toy figures / traffic cones | "Pedestrian" props | Amazon / Dollar store | $5–10 |
-| Zip ties or rubber bands | Mount phone/webcam on car | Hardware store | $2 |
+**G3 (Earned Commit):** A < τₗ(1−h) ∧ dA/dt < 0 ∧ Ã < σₛ ∧ R < ρc ∧ Tₛ ≥ t_min
 
-**Total: ~$57–77**
-
-### Optional
-| Item | Purpose | ~Cost |
-|------|---------|-------|
-| Raspberry Pi Zero 2W | Onboard compute for car | $15 |
-| Pi Camera Module 3 | Better onboard video | $25 |
-| Small portable monitor | Second screen for dashboard | (use laptop) |
+Compare to naive threshold policy A(t) < τₗ which commits on any momentary dip. G3 requires ambiguity to be decreasing, stable, and sustained simultaneously.
 
 ---
 
-## Demo Setup (No RC Autonomy Needed)
-
-The RC car does **not** need to drive itself.
+## HQM - Hesitation Quality Metric
 
 ```
-Setup A - Fixed overhead camera:
-  1. Mount webcam above a small tabletop course
-  2. Drive RC car manually through scenarios
-  3. Pipeline watches the overhead feed
-  4. Dashboard shows live analysis
-
-Setup B - Onboard camera:
-  1. Mount phone on RC car (zip tie)
-  2. Stream via IP Webcam app (Android) or EpocCam (iOS)
-  3. Set camera_index in params.yaml to the stream URL
-  4. Same pipeline, first-person perspective
+HQM = αS·S + βE·E + γB·B + δR·R
+      (0.40)  (0.25)  (0.20)  (0.15)
 ```
 
-### Scenarios to film
+| Component | Description | Range |
+|-----------|-------------|-------|
+| S (Safety Gain) | Risk reduction vs greedy commit | [−1, 1] |
+| E (Efficiency) | Penalty for unnecessary waiting | [0, 1] |
+| B (Stability) | Penalizes oscillation and excess transitions | [0, 1] |
+| R (Resolution) | Deadlock=0, timeout=0.5, earned=1.0 | {0, 0.5, 1.0} |
 
-| Scenario | Setup | What it shows |
-|----------|-------|---------------|
-| Pedestrian near curb | Toy figure 5cm from RC path | Behavioral ambiguity spike |
-| Hesitant merge | Two RC cars approaching | Trajectory conflict |
-| Occluded crossing | Cardboard box blocking view | Perceptual ambiguity |
-
-### LinkedIn video structure (90 seconds)
-```
-0:00–0:10   Title card: "AVs fail at ambiguity, not just detection"
-0:10–0:30   Greedy policy - RC car passes close to "pedestrian"
-            Dashboard: Risk spikes AFTER commit
-0:30–1:00   Hesitation-aware policy - same scenario
-            Dashboard: PROBE state, oscillation detected, G3 earned commit
-1:00–1:20   HQM comparison: 0.68 vs 0.60 baseline
-1:20–1:30   GitHub link
-```
+Greedy baseline: **HQM = 0.60** by construction. All 1,000 random parameter configurations beat this (100% win rate).
 
 ---
 
-## Key Research Claim
+## Six-Policy Comparison
 
-> Temporal confidence oscillation in the 2-second window preceding commitment
-> is a statistically significant predictor of unsafe correction events,
-> outperforming static ambiguity thresholds as a commit-gating signal.
+| Scenario | Greedy | Fixed | Random | Risk | TTC | **Hesitation** |
+|----------|--------|-------|--------|------|-----|----------------|
+| pedestrian\_curb | 0.600 | 0.436 | 0.484 | 0.576 | 0.576 | **0.747** |
+| merge\_hesitation | 0.600 | 0.377 | 0.401 | 0.568 | 0.568 | **0.606** |
+| occluded\_intersection | 0.600 | 0.549 | 0.579 | 0.616 | 0.712 | **0.655** |
 
----
-
-## Parameters
-
-All 14 state-machine parameters live in `config/params.yaml`.
-Tune by editing the YAML - no code changes needed.
+Hesitation is the **only policy that consistently outperforms greedy** across all three scenario classes. Fixed and random delay score *below* greedy - confirming that delay is not hesitation.
 
 ---
 
-## Running Tests
+## CARLA Phase 2 Validation
 
-```bash
-pytest tests/ -v
 ```
+Town10HD_Opt | Tesla Model3 blueprint | 4 weather conditions
+3 scenarios × 4 weather × 20 trials = 240 total trials
+Zero collisions across all conditions
+```
+
+| Weather | HQM Mean | Collisions/Trial |
+|---------|----------|-----------------|
+| Clear | 0.362 | 0.000 |
+| Night | 0.382 | 0.000 |
+| Fog | 0.342 | 0.000 |
+| Rain | 0.329 | 0.000 |
+
+---
+
+## Hardware
+
+- **Laptop**: Windows, NVIDIA RTX 2060 6GB, CUDA 12.1
+- **Camera**: Logitech C270
+- **RC car**: Adventure Force 1:24
+- **CARLA**: v0.9.15
+
+---
+
+## Paper
+
+> Arunkumar Ramachandran. *Hesitate or Commit: A Formal Framework for Ambiguity-Aware Decision-Making in Autonomous Driving.* Independent Researcher, 2026.
+
+Target: arXiv cs.RO (primary), cs.LG + cs.AI (secondary).
+
+---
+
+## Acknowledgments
+
+Thanks to the open-source communities behind Ultralytics YOLO, PyTorch, OpenCV, and CARLA, and the authors of OnSiteVRU for releasing trajectory data under academic use terms.
