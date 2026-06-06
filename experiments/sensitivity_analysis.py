@@ -38,7 +38,7 @@ RESULTS_DIR = Path(__file__).parent / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
 
 
-# Scenario profiles (same as run_ablation.py)
+# - Scenario profiles--─
 
 def scenario_pedestrian_curb(n_frames, dt, rng):
     t = np.arange(n_frames) * dt
@@ -52,7 +52,8 @@ def scenario_pedestrian_curb(n_frames, dt, rng):
         0.62 * np.exp(-((t - 1.5)**2) / 0.35)
         + 0.08 * np.clip(1.0 - (t - 3.0) / 1.5, 0, 1)
         + rng.normal(0, 0.012, n_frames), 0, 1)
-    return {"t": t, "A": A, "risk": risk, "name": "pedestrian_curb"}
+    return {"t": t, "A": A, "risk": risk,
+            "name": "pedestrian_curb"}
 
 
 def scenario_merge_hesitation(n_frames, dt, rng):
@@ -65,7 +66,8 @@ def scenario_merge_hesitation(n_frames, dt, rng):
     risk_drop = np.clip(1.0 - (t - 3.0) / 0.4, 0, 1)
     risk = np.clip(risk_base * risk_drop +
                    rng.normal(0, 0.015, n_frames), 0, 1)
-    return {"t": t, "A": A, "risk": risk, "name": "merge_hesitation"}
+    return {"t": t, "A": A, "risk": risk,
+            "name": "merge_hesitation"}
 
 
 def scenario_occluded_intersection(n_frames, dt, rng):
@@ -91,21 +93,19 @@ SCENARIOS = [
 ]
 
 
-# Run one trial with given config
+#  Run one trial with given config
+
 def run_trial(scenario_fn, rng, dt, n_frames,
               param_overrides: dict) -> float:
     """Run one trial with parameter overrides and return HQM."""
     import config as config_module
 
-    # Reset and load fresh config
     config_module.reset_config()
     cfg = config_module.load_config()
 
-    # Apply overrides directly to the loaded dict
     for key, val in param_overrides.items():
         cfg["state_machine"][key] = val
 
-    # _CONFIG is already mutated since it's the same dict object
     scenario   = scenario_fn(n_frames, dt, rng)
     t_arr      = scenario["t"]
     A_arr      = scenario["A"]
@@ -145,16 +145,16 @@ def run_trial(scenario_fn, rng, dt, n_frames,
             hqm_comp.on_probe_enter(
                 t, float(np.mean(risk_hist)))
 
-        g3_ok = g3_check(A, dA_dt, osc, risk, out.t_in_state)
+        g3_ok = g3_check(A, dA_dt, osc, risk,
+                          out.t_in_state)
         hqm_comp.on_tick(out.state, A, risk, dA_dt,
                          osc, t, g3_ok)
 
         if out.transition_fired:
-            hqm_comp.on_transition(out.transition_fired,
-                                   t, risk)
+            hqm_comp.on_transition(
+                out.transition_fired, t, risk)
         prev_state = out.state
 
-    # Reset config after trial so next trial starts clean
     config_module.reset_config()
 
     episodes = hqm_comp.completed_episodes
@@ -174,17 +174,14 @@ def run_sensitivity(n_trials=30, seed=42,
 
     cfg = load_config()
 
-    # Parameters to perturb
     params = {
         "tau_l":   cfg["state_machine"]["tau_low"],
         "rho_c":   cfg["state_machine"]["rho_commit"],
         "sigma_s": cfg["state_machine"]["sigma_stable"],
     }
 
-    # Perturbation levels
     perturbations = [-0.20, -0.10, 0.00, +0.10, +0.20]
-
-    results = []
+    results       = []
 
     print(f"\n{'='*60}")
     print(f"  Sensitivity Analysis")
@@ -192,7 +189,6 @@ def run_sensitivity(n_trials=30, seed=42,
           f"3 scenarios × {n_trials} trials")
     print(f"{'='*60}\n")
 
-    # Baseline first
     print("  Computing baseline...")
     for scenario_fn in SCENARIOS:
         hqm_vals = []
@@ -201,15 +197,14 @@ def run_sensitivity(n_trials=30, seed=42,
                             n_frames, {})
             hqm_vals.append(hqm)
         results.append({
-            "param":       "baseline",
+            "param":        "baseline",
             "perturbation": 0.0,
-            "scenario":    scenario_fn.__name__.replace(
-                           "scenario_", ""),
-            "hqm_mean":    np.mean(hqm_vals),
-            "hqm_std":     np.std(hqm_vals),
+            "scenario":     scenario_fn.__name__\
+                            .replace("scenario_", ""),
+            "hqm_mean":     np.mean(hqm_vals),
+            "hqm_std":      np.std(hqm_vals),
         })
 
-    # Perturb each parameter
     param_keys = {
         "tau_l":   "tau_low",
         "rho_c":   "rho_commit",
@@ -223,22 +218,24 @@ def run_sensitivity(n_trials=30, seed=42,
 
         for pct in perturbations:
             if pct == 0.0:
-                continue  # already have baseline
+                continue
             perturbed_val = base_val * (1.0 + pct)
-            override = {cfg_key: perturbed_val}
+            override      = {cfg_key: perturbed_val}
 
             for scenario_fn in SCENARIOS:
                 hqm_vals = []
                 for _ in range(n_trials):
                     hqm = run_trial(scenario_fn, rng,
-                                    dt, n_frames, override)
+                                    dt, n_frames,
+                                    override)
                     hqm_vals.append(hqm)
 
                 results.append({
                     "param":        param_name,
                     "perturbation": pct * 100,
                     "scenario":     scenario_fn.__name__\
-                                    .replace("scenario_", ""),
+                                    .replace(
+                                        "scenario_", ""),
                     "hqm_mean":     np.mean(hqm_vals),
                     "hqm_std":      np.std(hqm_vals),
                 })
@@ -251,22 +248,26 @@ def run_sensitivity(n_trials=30, seed=42,
     return pd.DataFrame(results)
 
 
-# Print summary table
+#  Print summary
 
 def print_summary(df: pd.DataFrame):
     print(f"\n{'='*60}")
-    print(f"  SENSITIVITY SUMMARY (mean HQM across scenarios)")
+    print(f"  SENSITIVITY SUMMARY "
+          f"(mean HQM across scenarios)")
     print(f"{'='*60}")
     print(f"\n  {'Param':<12} {'Perturbation':>14} "
           f"{'Mean HQM':>10} {'Std':>8} {'Delta':>8}")
     print(f"  {'-'*55}")
 
-    baseline = df[df.param == "baseline"]["hqm_mean"].mean()
+    baseline = df[df.param == "baseline"]\
+               ["hqm_mean"].mean()
 
     for param in ["tau_l", "rho_c", "sigma_s"]:
         param_df = df[df.param == param]
-        for pct in sorted(param_df["perturbation"].unique()):
-            row = param_df[param_df.perturbation == pct]
+        for pct in sorted(
+                param_df["perturbation"].unique()):
+            row      = param_df[
+                param_df.perturbation == pct]
             mean_hqm = row["hqm_mean"].mean()
             std_hqm  = row["hqm_std"].mean()
             delta    = mean_hqm - baseline
@@ -278,67 +279,85 @@ def print_summary(df: pd.DataFrame):
     print(f"  Baseline HQM: {baseline:.4f}")
 
 
-# Plot
+#  Plot - LIGHT THEME
 
 def plot_sensitivity(df: pd.DataFrame):
-    params   = ["tau_l", "rho_c", "sigma_s"]
+    params    = ["tau_l", "rho_c", "sigma_s"]
     scenarios = df["scenario"].unique()
 
     colors = {
-        "pedestrian_curb":       "#3b82f6",
-        "merge_hesitation":      "#22c55e",
-        "occluded_intersection": "#f97316",
+        "pedestrian_curb":       "#3182ce",
+        "merge_hesitation":      "#38a169",
+        "occluded_intersection": "#dd6b20",
     }
 
-    fig = plt.figure(figsize=(16, 5), facecolor="#0f172a")
+    plt.rcParams.update({
+        "figure.facecolor": "white",
+        "axes.facecolor":   "white",
+        "axes.edgecolor":   "#cccccc",
+        "axes.labelcolor":  "#222222",
+        "xtick.color":      "#444444",
+        "ytick.color":      "#444444",
+        "text.color":       "#222222",
+        "grid.color":       "#eeeeee",
+        "grid.linestyle":   "--",
+        "grid.linewidth":   0.5,
+    })
+
+    fig = plt.figure(figsize=(16, 5),
+                      facecolor="white")
     gs  = gridspec.GridSpec(1, 3, figure=fig,
                             hspace=0.3, wspace=0.3)
 
-    baseline_hqm = df[df.param == "baseline"] \
+    baseline_hqm = df[df.param == "baseline"]\
                    .groupby("scenario")["hqm_mean"].mean()
 
     for col, param in enumerate(params):
         ax = fig.add_subplot(gs[0, col])
-        ax.set_facecolor("#020617")
+        ax.set_facecolor("white")
 
         param_df = df[df.param == param]
 
         for scenario in scenarios:
-            sdf   = param_df[param_df.scenario == scenario]
-            pcts  = sorted(sdf["perturbation"].unique())
-            means = []
-            stds  = []
+            sdf  = param_df[
+                param_df.scenario == scenario]
+            pcts = sorted(
+                sdf["perturbation"].unique())
+            means, stds = [], []
 
             for pct in pcts:
                 row = sdf[sdf.perturbation == pct]
-                means.append(row["hqm_mean"].values[0])
-                stds.append(row["hqm_std"].values[0])
+                means.append(
+                    row["hqm_mean"].values[0])
+                stds.append(
+                    row["hqm_std"].values[0])
 
-            # Add baseline at 0%
-            base = baseline_hqm.get(scenario, 0.5)
+            base       = baseline_hqm.get(
+                scenario, 0.5)
             pcts_full  = [-20, -10, 0, 10, 20]
-
-            # Insert baseline at 0%
             means_full = means[:2] + [base] + means[2:]
             stds_full  = stds[:2]  + [0.0]  + stds[2:]
 
+            color = colors.get(scenario, "#5a67d8")
             ax.plot(pcts_full, means_full,
-                    color=colors.get(scenario, "#818cf8"),
-                    linewidth=2, marker="o", markersize=4,
-                    label=scenario.replace("_", "\n"))
+                     color=color,
+                     linewidth=2, marker="o",
+                     markersize=4,
+                     label=scenario.replace(
+                         "_", "\n"))
             ax.fill_between(
                 pcts_full,
-                [m - s for m, s in zip(means_full, stds_full)],
-                [m + s for m, s in zip(means_full, stds_full)],
-                alpha=0.15,
-                color=colors.get(scenario, "#818cf8")
-            )
+                [m-s for m, s in zip(
+                    means_full, stds_full)],
+                [m+s for m, s in zip(
+                    means_full, stds_full)],
+                alpha=0.12, color=color)
 
-        ax.axhline(y=0.60, color="#ef4444",
-                   linestyle="--", linewidth=1,
-                   label="Greedy baseline")
-        ax.axvline(x=0, color="#475569",
-                   linestyle=":", linewidth=1)
+        ax.axhline(y=0.60, color="#e53e3e",
+                    linestyle="--", linewidth=1,
+                    label="Greedy baseline")
+        ax.axvline(x=0, color="#718096",
+                    linestyle=":", linewidth=1)
 
         param_labels = {
             "tau_l":   r"$\tau_l$ perturbation (%)",
@@ -346,32 +365,42 @@ def plot_sensitivity(df: pd.DataFrame):
             "sigma_s": r"$\sigma_s$ perturbation (%)",
         }
         ax.set_xlabel(param_labels[param],
-                      color="#64748b", fontsize=8)
-        ax.set_ylabel("Mean HQM", color="#64748b", fontsize=8)
+                       color="#444444", fontsize=8)
+        ax.set_ylabel("Mean HQM",
+                       color="#444444", fontsize=8)
         ax.set_title(f"Sensitivity: {param}",
-                     color="#e2e8f0", fontsize=9)
-        ax.tick_params(colors="#475569", labelsize=7)
+                      color="#222222", fontsize=9)
+        ax.tick_params(colors="#444444",
+                        labelsize=7)
         ax.set_xticks([-20, -10, 0, 10, 20])
-        ax.set_xticklabels(["-20%", "-10%", "0%",
-                             "+10%", "+20%"],
-                           fontsize=7, color="#475569")
+        ax.set_xticklabels(
+            ["-20%", "-10%", "0%",
+             "+10%", "+20%"],
+            fontsize=7, color="#444444")
+        ax.grid(True, alpha=0.5)
         for spine in ax.spines.values():
-            spine.set_edgecolor("#1e293b")
+            spine.set_edgecolor("#cccccc")
 
         if col == 0:
-            ax.legend(fontsize=6, facecolor="#0f172a",
-                      labelcolor="#94a3b8",
-                      edgecolor="#1e293b",
-                      loc="lower left")
+            ax.legend(fontsize=6,
+                       facecolor="white",
+                       edgecolor="#cccccc",
+                       loc="lower left")
 
     plt.savefig(RESULTS_DIR / "sensitivity.png",
                 dpi=150, bbox_inches="tight",
-                facecolor="#0f172a")
-    print(f"\n  Plot saved → "
+                facecolor="white")
+    print(f"\n  Plot saved  "
           f"experiments/results/sensitivity.png")
 
-def run_random_param_sweep(n_configs=1000, n_trials=10,
-                            seed=42, duration=8.0, fps=30.0):
+
+#  Random parameter sweep
+
+def run_random_param_sweep(n_configs=1000,
+                            n_trials=10,
+                            seed=42,
+                            duration=8.0,
+                            fps=30.0):
     import config as config_module
 
     config_module.reset_config()
@@ -397,7 +426,8 @@ def run_random_param_sweep(n_configs=1000, n_trials=10,
     beats_greedy = 0
 
     print(f"\n{'='*60}")
-    print(f"  Random Parameter Sweep: {n_configs} configurations")
+    print(f"  Random Parameter Sweep: "
+          f"{n_configs} configurations")
     print(f"  {n_trials} trials × 3 scenarios per config")
     print(f"{'='*60}\n")
 
@@ -423,13 +453,16 @@ def run_random_param_sweep(n_configs=1000, n_trials=10,
             "config_idx":   config_idx,
             "mean_hqm":     round(mean_hqm, 4),
             "beats_greedy": beats,
-            **{k: round(v, 6) for k, v in sampled.items()}
+            **{k: round(v, 6)
+               for k, v in sampled.items()}
         })
 
         if config_idx % 100 == 0:
             pct      = 100 * config_idx / n_configs
-            win_rate = 100 * beats_greedy / max(config_idx+1, 1)
-            print(f"  [{pct:5.1f}%] config {config_idx:4d}  "
+            win_rate = 100 * beats_greedy / \
+                       max(config_idx+1, 1)
+            print(f"  [{pct:5.1f}%] "
+                  f"config {config_idx:4d}  "
                   f"win rate so far: {win_rate:.1f}%")
 
     df       = pd.DataFrame(results)
@@ -448,20 +481,26 @@ def run_random_param_sweep(n_configs=1000, n_trials=10,
 
     return df, win_rate
 
-# Entry point 
+
+#  Entry point
+
 if __name__ == "__main__":
     df = run_sensitivity(n_trials=30)
 
-    df.to_csv(RESULTS_DIR / "sensitivity.csv", index=False)
-    print(f"\n  Data saved → experiments/results/sensitivity.csv")
+    df.to_csv(RESULTS_DIR / "sensitivity.csv",
+               index=False)
+    print(f"\n  Data saved  "
+          f"experiments/results/sensitivity.csv")
     print_summary(df)
     plot_sensitivity(df)
 
-    print("\n\nRunning 1000-configuration parameter sweep...")
+    print("\n\nRunning 1000-configuration "
+          "parameter sweep...")
     sweep_df, win_rate = run_random_param_sweep(
-        n_configs=1000, n_trials=10
-    )
+        n_configs=1000, n_trials=10)
     sweep_df.to_csv(
-        RESULTS_DIR / "param_sweep_1000.csv", index=False)
-    print(f"  Saved → experiments/results/param_sweep_1000.csv")
+        RESULTS_DIR / "param_sweep_1000.csv",
+        index=False)
+    print(f"  Saved  "
+          f"experiments/results/param_sweep_1000.csv")
     print(f"\n  Done.")

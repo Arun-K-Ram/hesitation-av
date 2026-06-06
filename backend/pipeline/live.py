@@ -14,6 +14,15 @@ Usage:
 
     # Record to disk:
     poetry run python backend/pipeline/live.py --source 0 --record
+
+    # Scenario 1:
+    poetry run python backend/pipeline/live.py --source 0 --record --label pedestrian_curb
+
+    # Scenario 2:
+    poetry run python backend/pipeline/live.py --source 0 --record --label merge_hesitation
+
+    # Scenario 3:
+    poetry run python backend/pipeline/live.py --source 0 --record --label occluded_intersection
 """
 
 import sys

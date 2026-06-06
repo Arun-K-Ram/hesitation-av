@@ -1,4 +1,4 @@
-scenario,trial,offset,t_actual,t_cf,hqm,S,E,B,R,risk_at_commit,risk_at_greedy,t_commit
+scenario,trial,offset_s,t_actual,t_cf,hqm,S,E,B,R,risk_at_commit,risk_at_greedy,t_commit
 pedestrian_curb,0,-2.0,3.133,1.133,0.5916,0.0515,0.9239,0.9502,1.0,0.5211,0.5727,1.133
 pedestrian_curb,0,-1.5,3.133,1.633,0.4686,-0.0954,0.8679,0.6991,1.0,0.6681,0.5727,1.633
 pedestrian_curb,0,-1.0,3.133,2.133,0.5569,0.2963,0.8153,0.423,1.0,0.2764,0.5727,2.133
