@@ -638,9 +638,9 @@ def plot_carla(df):
         "grid.linewidth":   0.5,
     })
 
-    fig = plt.figure(figsize=(18, 10),
+    fig = plt.figure(figsize=(14, 10),
                       facecolor="white")
-    gs  = gridspec.GridSpec(2, 3, figure=fig,
+    gs  = gridspec.GridSpec(2, 2, figure=fig,
                             hspace=0.45,
                             wspace=0.35)
 
@@ -659,7 +659,7 @@ def plot_carla(df):
     scenarios = df["scenario"].unique()
     weathers  = ["clear", "rain", "fog", "night"]
 
-    #  HQM by scenario 
+    # ── HQM by scenario ───────────────────────
     ax1 = fig.add_subplot(gs[0, 0])
     ax1.set_facecolor("white")
     means  = [df[df.scenario==s]["hqm"].mean()
@@ -680,15 +680,14 @@ def plot_carla(df):
                    color="#222222", fontsize=9)
     ax1.set_ylabel("Mean HQM",
                     color="#444444", fontsize=8)
-    ax1.tick_params(colors="#444444",
-                     labelsize=7)
+    ax1.tick_params(colors="#444444", labelsize=7)
     ax1.grid(True, axis="y", alpha=0.5)
     ax1.legend(fontsize=7, facecolor="white",
                 edgecolor="#cccccc")
     for spine in ax1.spines.values():
         spine.set_edgecolor("#cccccc")
 
-    #  HQM by weather 
+    # ── HQM by weather ─────────────────────────
     ax2 = fig.add_subplot(gs[0, 1])
     ax2.set_facecolor("white")
     w_means  = [df[df.weather==w]["hqm"].mean()
@@ -706,73 +705,53 @@ def plot_carla(df):
                    color="#222222", fontsize=9)
     ax2.set_ylabel("Mean HQM",
                     color="#444444", fontsize=8)
-    ax2.tick_params(colors="#444444",
-                     labelsize=8)
+    ax2.tick_params(colors="#444444", labelsize=8)
     ax2.grid(True, axis="y", alpha=0.5)
     for spine in ax2.spines.values():
         spine.set_edgecolor("#cccccc")
 
-    #  Collision rate by weather 
-    ax3 = fig.add_subplot(gs[0, 2])
+    # ── HQM heatmap: scenario × weather ────────
+    ax3 = fig.add_subplot(gs[1, 0])
     ax3.set_facecolor("white")
-    col_means = [
-        df[df.weather==w]["collisions"].mean()
-        for w in weathers]
-    ax3.bar(weathers, col_means,
-             color=w_colors, edgecolor="white")
-    ax3.set_title("Collision Rate by Weather",
-                   color="#222222", fontsize=9)
-    ax3.set_ylabel("Mean Collisions / Trial",
-                    color="#444444", fontsize=8)
-    ax3.tick_params(colors="#444444",
-                     labelsize=8)
-    ax3.grid(True, axis="y", alpha=0.5)
-    for spine in ax3.spines.values():
-        spine.set_edgecolor("#cccccc")
-
-    #  HQM heatmap: scenario × weather 
-    ax4 = fig.add_subplot(gs[1, :2])
-    ax4.set_facecolor("white")
     heatmap_data = np.array([
         [df[(df.scenario==s) &
             (df.weather==w)]["hqm"].mean()
          for w in weathers]
         for s in scenarios
     ])
-    im = ax4.imshow(heatmap_data,
+    im = ax3.imshow(heatmap_data,
                      cmap="RdYlGn",
                      vmin=0.4, vmax=0.9,
                      aspect="auto")
-    ax4.set_xticks(range(len(weathers)))
-    ax4.set_xticklabels(weathers,
+    ax3.set_xticks(range(len(weathers)))
+    ax3.set_xticklabels(weathers,
                          color="#444444",
                          fontsize=8)
-    ax4.set_yticks(range(len(scenarios)))
-    ax4.set_yticklabels(
-        [s.replace("_", "\n")
-         for s in scenarios],
+    ax3.set_yticks(range(len(scenarios)))
+    ax3.set_yticklabels(
+        [s.replace("_", "\n") for s in scenarios],
         color="#444444", fontsize=7)
-    ax4.set_title(
+    ax3.set_title(
         "HQM Heatmap: Scenario × Weather",
         color="#222222", fontsize=9)
     for i in range(len(scenarios)):
         for j in range(len(weathers)):
-            ax4.text(
+            ax3.text(
                 j, i,
                 f"{heatmap_data[i,j]:.3f}",
                 ha="center", va="center",
                 color="#111111", fontsize=8,
                 fontweight="bold")
-    plt.colorbar(im, ax=ax4)
+    plt.colorbar(im, ax=ax3)
 
-    #  Phase 1 vs CARLA 
-    ax5 = fig.add_subplot(gs[1, 2])
-    ax5.set_facecolor("white")
+    # ── Phase 1 vs CARLA ───────────────────────
+    ax4 = fig.add_subplot(gs[1, 1])
+    ax4.set_facecolor("white")
 
     phase1_path = RESULTS_DIR / "results.csv"
     if phase1_path.exists():
-        phase1  = pd.read_csv(phase1_path)
-        p1_hes  = phase1[
+        phase1 = pd.read_csv(phase1_path)
+        p1_hes = phase1[
             phase1.policy == "hesitation"]
 
         p1_vals, p2_vals, labels = [], [], []
@@ -789,40 +768,36 @@ def plot_carla(df):
 
         x = np.arange(len(labels))
         w = 0.35
-        ax5.bar(x - w/2, p1_vals, w,
+        ax4.bar(x - w/2, p1_vals, w,
                  color="#3182ce", alpha=0.8,
                  label="Phase 1 (tabletop)",
                  edgecolor="white")
-        ax5.bar(x + w/2, p2_vals, w,
+        ax4.bar(x + w/2, p2_vals, w,
                  color="#38a169", alpha=0.8,
                  label="Phase 2 (CARLA)",
                  edgecolor="white")
-        ax5.set_xticks(x)
-        ax5.set_xticklabels(labels,
+        ax4.set_xticks(x)
+        ax4.set_xticklabels(labels,
                              fontsize=7,
                              color="#444444")
-        ax5.axhline(y=0.60, color="#e53e3e",
+        ax4.axhline(y=0.60, color="#e53e3e",
                      linestyle="--", linewidth=1)
-        ax5.set_title("Phase 1 vs Phase 2",
-                       color="#222222",
-                       fontsize=9)
-        ax5.set_ylabel("HQM",
-                        color="#444444",
-                        fontsize=8)
-        ax5.tick_params(colors="#444444",
+        ax4.set_title("Phase 1 vs Phase 2",
+                       color="#222222", fontsize=9)
+        ax4.set_ylabel("HQM",
+                        color="#444444", fontsize=8)
+        ax4.tick_params(colors="#444444",
                          labelsize=7)
-        ax5.grid(True, axis="y", alpha=0.5)
-        ax5.legend(fontsize=7,
-                    facecolor="white",
+        ax4.grid(True, axis="y", alpha=0.5)
+        ax4.legend(fontsize=7, facecolor="white",
                     edgecolor="#cccccc")
-        for spine in ax5.spines.values():
+        for spine in ax4.spines.values():
             spine.set_edgecolor("#cccccc")
     else:
-        ax5.text(0.5, 0.5,
+        ax4.text(0.5, 0.5,
                   "Phase 1 results\nnot found",
-                  transform=ax5.transAxes,
-                  ha="center",
-                  color="#718096")
+                  transform=ax4.transAxes,
+                  ha="center", color="#718096")
 
     plt.savefig(
         RESULTS_DIR / "carla_validation.png",
